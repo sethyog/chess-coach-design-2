@@ -1,0 +1,145 @@
+tasks:
+- id: '01'
+  name: User Authentication and Chess Platform Integration
+  description: Set up Firebase Authentication for email/password and Google OAuth.
+    Integrate Chess.com and Lichess OAuth login and securely store access tokens.
+  frameworks:
+  - Firebase Auth
+  - Node.js
+  - Express
+  estimated_time_hours: 4
+  dependencies: []
+  outputs:
+  - User session token
+  - OAuth tokens stored in Firestore
+- id: '02'
+  name: Visual Chessboard UI
+  description: Create a React component using react-chessboard with FEN/PGN support,
+    drag-and-drop, and lesson vs free-play modes.
+  frameworks:
+  - React
+  - react-chessboard
+  estimated_time_hours: 5
+  dependencies: []
+  outputs:
+  - Interactive chessboard UI component
+- id: '03'
+  name: Game and Puzzle Fetching Service
+  description: Build a Node.js service to fetch weekly games and puzzles from Chess.com
+    and Lichess using stored tokens. Schedule with node-cron.
+  frameworks:
+  - Node.js
+  - node-cron
+  - Express
+  estimated_time_hours: 6
+  dependencies:
+  - '01'
+  outputs:
+  - Fetched game and puzzle data stored in PostgreSQL
+- id: '04'
+  name: Game Analysis Engine
+  description: Use Stockfish via python-chess to evaluate PGNs and annotate move accuracy,
+    blunders, and positional metadata.
+  frameworks:
+  - Python
+  - FastAPI
+  - Stockfish
+  - python-chess
+  estimated_time_hours: 5
+  dependencies:
+  - '03'
+  outputs:
+  - Annotated game analysis JSON
+- id: '05'
+  name: Player Profiling Engine
+  description: Build service to score player style and skill trends based on game
+    analysis. Store versioned profiles with metrics like aggression and accuracy.
+  frameworks:
+  - Python
+  - Pandas
+  - PostgreSQL
+  estimated_time_hours: 5
+  dependencies:
+  - '04'
+  outputs:
+  - User profile with strengths, weaknesses, and style
+- id: '06'
+  name: Personality Modeling Agent
+  description: Analyze chatbot conversation logs and classify user personality using
+    GPT-4. Store persona as Witty, Serious, etc. in Pinecone and PostgreSQL.
+  frameworks:
+  - LangChain
+  - OpenAI
+  - Pinecone
+  estimated_time_hours: 4
+  dependencies: []
+  outputs:
+  - User personality tag
+- id: '07'
+  name: Chatbot Agent
+  description: Build LangChain agent using GPT-4 that adapts its tone and responses
+    to user personality and playing style. Integrate with frontend chat UI.
+  frameworks:
+  - LangChain
+  - OpenAI
+  - React
+  estimated_time_hours: 6
+  dependencies:
+  - '05'
+  - '06'
+  outputs:
+  - Contextual chatbot responses
+- id: 08
+  name: Lesson Generator Agent
+  description: Generate personalized chess lessons weekly based on user profile and
+    personality. Include intro, puzzles, theory, and annotated game.
+  frameworks:
+  - LangChain
+  - OpenAI
+  - JSONOutputParser
+  estimated_time_hours: 5
+  dependencies:
+  - '05'
+  - '06'
+  outputs:
+  - Weekly lesson JSON
+- id: 09
+  name: Save and Resume Lessons
+  description: Enable lesson checkpointing with progress markers and resume feature.
+    Store in PostgreSQL with per-user session tracking.
+  frameworks:
+  - React
+  - PostgreSQL
+  estimated_time_hours: 3
+  dependencies:
+  - 08
+  outputs:
+  - Resumable lesson state
+- id: '10'
+  name: Lesson Completion Tracker
+  description: Track completed lessons with timestamps and performance. Display history
+    on user dashboard.
+  frameworks:
+  - PostgreSQL
+  - React
+  estimated_time_hours: 3
+  dependencies:
+  - 09
+  outputs:
+  - Completed lesson records
+- id: '11'
+  name: Weekly Automation Job
+  description: Set up automated job to fetch new games, analyze, update profile, and
+    trigger lesson generation.
+  frameworks:
+  - Node.js
+  - Celery (optional)
+  - node-cron
+  estimated_time_hours: 4
+  dependencies:
+  - '03'
+  - '04'
+  - '05'
+  - 08
+  outputs:
+  - Automated data and lesson update
