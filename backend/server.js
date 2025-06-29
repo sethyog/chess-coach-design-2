@@ -15,6 +15,15 @@ app.use(express.json({ extended: false }));
 app.use(cors());
 app.use(morgan('dev')); // Logging
 
+// Health check endpoint for CLI
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'online',
+    version: '0.1.0',
+    message: 'Chess Coach API is running'
+  });
+});
+
 // Define Routes
 app.use('/api/auth', require('./routes/api/auth'));
 app.use('/api/users', require('./routes/api/users'));

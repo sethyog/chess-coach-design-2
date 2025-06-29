@@ -42,7 +42,7 @@ In this lesson, you'll learn:
 
 Let's get started!
             `,
-            position: 'start'
+            position: null
           },
           {
             type: 'explanation',
@@ -60,7 +60,7 @@ The center of the board (d4, d5, e4, e5) is strategically important because:
 
 In the position shown, White has moved 1.e4, taking the first step toward controlling the center.
             `,
-            position: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1'
+            position: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'
           },
           {
             type: 'puzzle',
@@ -72,7 +72,7 @@ Now Black should also fight for the center. What's one good move for Black here?
 
 Try making a move on the board. Aim to control or contest the center.
             `,
-            position: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+            position: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1',
             solution: ['e5', 'c5', 'e6', 'd5'],
             feedback: {
               'e5': 'Excellent! 1...e5 directly contests the center and leads to open, double king pawn positions.',
@@ -99,7 +99,7 @@ After establishing pawns in the center, you should develop your pieces quickly:
 
 In this position, after 1.e4 e5, White has played 2.Nf3, developing a knight toward the center.
             `,
-            position: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2'
+            position: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 0 2'
           },
           {
             type: 'explanation',
@@ -118,7 +118,7 @@ In the opening, king safety is paramount:
 This position shows a typical king's side castle for White, providing good king safety.
             `,
             position: 'r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 0 5',
-            nextPosition: 'r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQ1RK1 b kq - 1 5'
+            nextPosition: 'r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQ1RK1 b kq - 0 5'
           },
           {
             type: 'quiz',
@@ -171,7 +171,7 @@ In your next games, focus on applying these principles, and you'll see immediate
 
 Next up: Tactical Patterns in the Opening!
             `,
-            position: 'r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQ1RK1 w - - 2 6'
+            position: 'r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQ1RK1 w - - 0 6'
           }
         ],
         progress: 0
@@ -197,6 +197,7 @@ Next up: Tactical Patterns in the Opening!
         if (fetchedLesson.sections && fetchedLesson.sections.length > 0) {
           const firstSection = fetchedLesson.sections[0];
           if (firstSection.position) {
+            console.log('Setting initial position:', firstSection.position);
             const newGame = new Chess(firstSection.position);
             setGame(newGame);
             setPosition(firstSection.position);
@@ -276,7 +277,7 @@ Next up: Tactical Patterns in the Opening!
       const currentSection = lesson.sections[currentSectionIndex];
       if (currentSection.type === 'puzzle' && currentSection.solution) {
         // Extract the move notation (e.g., 'e5' from e7-e5)
-        const moveNotation = result.to;
+        const moveNotation = result.to.substring(0, 2);
         
         // Check if the move is in the solution array
         if (currentSection.solution.includes(moveNotation)) {

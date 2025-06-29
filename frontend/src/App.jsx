@@ -24,15 +24,17 @@ function App() {
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
-      <div className="app">
+      <div className="app" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
         <Navbar />
-        <main className="container">
+        <main className="container" style={{ padding: '20px' }}>
           <Routes>
             <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/lessons/:id" element={isAuthenticated ? <LessonPlayer /> : <Navigate to="/login" />} />
             <Route path="/demo" element={<ChessboardDemo />} />
+            {/* Add a catch-all route that redirects to login */}
+            <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
         </main>
       </div>

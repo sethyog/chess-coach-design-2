@@ -8,6 +8,14 @@ Chess Coach is a full-stack application that integrates with Chess.com and Liche
 
 ## Features
 
+### Command Line Interface (CLI)
+- Interactive command-line tool for managing your chess coach account
+- Check server status and connection
+- User authentication via login/register commands
+- View and manage your chess games and lessons
+- Update your profile and preferences
+- Analyze new games with simple commands
+
 ### User Authentication
 - Email/password authentication with Firebase
 - OAuth integration with Chess.com and Lichess
@@ -108,6 +116,53 @@ npm run dev
 
 5. Access the application at http://localhost:3000
 
+6. Install the CLI globally (optional)
+```
+npm install -g .
+```
+
+### Using the Command Line Interface
+
+After installing the CLI globally, you can use the following commands:
+
+```
+# Check server status
+chess-coach server-status
+
+# Get help
+chess-coach help
+
+# Register a new account
+chess-coach register
+
+# Log in to your account
+chess-coach login
+
+# View your profile
+chess-coach profile
+
+# List available lessons
+chess-coach lessons
+
+# View a specific lesson
+chess-coach lesson <id>
+
+# List your chess games
+chess-coach games
+
+# View details and analysis of a specific game
+chess-coach game <id>
+
+# Upload and analyze a new game
+chess-coach analyze
+
+# Update your profile information
+chess-coach update-profile
+
+# Log out
+chess-coach logout
+```
+
 ## Project Structure
 
 ```
@@ -124,6 +179,7 @@ chess-coach/
 │   ├── models/           # Database models
 │   ├── middleware/       # Express middleware
 │   └── services/         # Business logic
+├── cli.js                # Command line interface
 └── analysis/             # Python analysis service
     ├── app/              # FastAPI application
     ├── models/           # Analysis models
