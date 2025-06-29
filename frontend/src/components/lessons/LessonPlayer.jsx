@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ChatbotPanel from '../chat/ChatbotPanel';
 import { useParams, Link } from 'react-router-dom';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
@@ -416,10 +417,12 @@ Next up: Tactical Patterns in the Opening!
                 </div>
               </div>
             )}
-          </div>
         </div>
-        
-        <div className="card-footer" style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem' }}>
+      </div>
+
+      <ChatbotPanel />
+
+      <div className="card-footer" style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem' }}>
           <button 
             className="btn btn-secondary" 
             onClick={goToPreviousSection}

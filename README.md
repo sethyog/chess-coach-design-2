@@ -54,6 +54,7 @@ Chess Coach is a full-stack application that integrates with Chess.com and Liche
 - Context-aware responses using LangChain and GPT-4
 - Style adaption based on user personality
 - Chess-specific assistance
+- Chat panel embedded in every lesson for instant questions
 
 ## Architecture
 
@@ -108,15 +109,38 @@ npm run install-all
 cp .env.example .env
 ```
 Edit .env with your API keys and configuration.
+Make sure `OPENAI_API_KEY` is set for the chatbot to function.
 
-4. Start the development server
+4. Set up Python virtual environment and install dependencies
+```
+python -m venv venv
+venv\Scripts\activate  # On Windows
+# or
+source venv/bin/activate  # On macOS/Linux
+pip install langchain openai fastapi uvicorn
+```
+
+5. Start the development server
 ```
 npm run dev
 ```
 
-5. Access the application at http://localhost:3000
+6. Start the Python FastAPI backend (in a separate terminal)
+```
+# Make sure the virtual environment is activated
+venv\Scripts\activate  # On Windows
+# or
+source venv/bin/activate  # On macOS/Linux
 
-6. Install the CLI globally (optional)
+# Start the FastAPI server with uvicorn
+uvicorn main:app --reload --port 8000
+```
+
+7. Access the application at http://localhost:3000
+   The FastAPI backend will be available at http://localhost:8000
+   Open any lesson and use the chatbot panel below the board to ask questions.
+
+8. Install the CLI globally (optional)
 ```
 npm install -g .
 ```

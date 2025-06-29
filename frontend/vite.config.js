@@ -14,7 +14,8 @@ export default defineConfig({
     port: 5174,
     strictPort: false,
     proxy: {
-      '/api': 'http://localhost:5000'
+      '/api': 'http://localhost:5000',
+      '/py-api': 'http://127.0.0.1:8000'
     },
     open: true
   },
