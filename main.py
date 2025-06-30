@@ -6,7 +6,7 @@ import os
 
 # Minimal LangChain setup with fallback
 try:
-    from langchain.llms import OpenAI
+    from langchain_openai import OpenAI
     from langchain.chains import ConversationChain
     from langchain.memory import ConversationBufferMemory
     LANGCHAIN_AVAILABLE = True
@@ -16,13 +16,13 @@ except ImportError:
         def __init__(self, **kwargs):
             pass
         async def predict(self, input_text):
-            return f"Echo: {input_text}"
+            return f"Echo1: {input_text}"
     
     class ConversationChain:
         def __init__(self, **kwargs):
             pass
         async def predict(self, input):
-            return f"Echo: {input}"
+            return f"Echo2: {input}"
     
     class ConversationBufferMemory:
         def __init__(self):
@@ -85,9 +85,9 @@ async def chat_message(chat_request: ChatMessage):
             
             # Create LangChain conversation
             llm = OpenAI(
-                openai_api_key=openai_api_key,
+                api_key=openai_api_key,
                 temperature=0.7,
-                model_name="gpt-3.5-turbo-instruct"
+                model="gpt-3.5-turbo-instruct"
             )
             memory = ConversationBufferMemory()
             sessions[user_id] = ConversationChain(
@@ -98,7 +98,7 @@ async def chat_message(chat_request: ChatMessage):
         
         # Get response from conversation chain
         conversation = sessions[user_id]
-        # Remove await, as predict is likely synchronous
+        # predict is synchronous in LangChain
         response = conversation.predict(input=message)
         print(f"[DEBUG] User: {user_id}, Message: {message}, Response: {response}")
         return ChatResponse(response=response, userId=user_id)
