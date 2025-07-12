@@ -7,6 +7,10 @@ const dotenv = require('dotenv');
 // Load environment variables
 dotenv.config();
 
+// Initialize database
+const { testConnection, syncDatabase } = require('./config/database');
+const { syncDatabase: syncModels } = require('./models');
+
 // Initialize Express app
 const app = express();
 
@@ -45,5 +49,25 @@ if (process.env.NODE_ENV === 'production') {
 // Define PORT
 const PORT = process.env.PORT || 5000;
 
+// Initialize database connection and sync models
+const initializeDatabase = async () => {
+  try {
+    await testConnection();
+    await syncModels();
+    console.log('Database initialized successfully');
+  } catch (error) {
+    console.error('Database initialization failed:', error);
+    process.exit(1);
+  }
+};
+
 // Start server
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+const startServer = async () => {
+  await initializeDatabase();
+  app.listen(PORT, () => {
+    console.log(`Server started on port ${PORT}`);
+    console.log('Database connected and models synchronized');
+  });
+};
+
+startServer();
