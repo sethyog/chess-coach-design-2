@@ -1,0 +1,61 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/backend/models/Conversation.js b/backend/models/Conversation.js
+index b5fefb352791c3634385c8fdc166506bb39958b3..7572578ade554619cedb564b285129043df72dce 100644
+--- a/backend/models/Conversation.js
++++ b/backend/models/Conversation.js
+@@ -1,42 +1,52 @@
+ const { DataTypes } = require('sequelize');
+ const { sequelize } = require('../config/database');
+ 
+ const Conversation = sequelize.define('Conversation', {
+   id: {
+     type: DataTypes.UUID,
+     defaultValue: DataTypes.UUIDV4,
+     primaryKey: true
+   },
+   user_id: {
+     type: DataTypes.STRING,
+     allowNull: false,
+     validate: {
+       notEmpty: true
+     }
+   },
+   title: {
+     type: DataTypes.STRING,
+     allowNull: true,
+     defaultValue: 'New Conversation'
+   },
+   metadata: {
+     type: DataTypes.JSON,
+     allowNull: true,
+     defaultValue: {}
++  },
++  insights: {
++    type: DataTypes.JSON,
++    allowNull: true,
++    defaultValue: []
++  },
++  coaching_metadata: {
++    type: DataTypes.JSON,
++    allowNull: true,
++    defaultValue: {}
+   }
+ }, {
+   tableName: 'conversations',
+   timestamps: true,
+   createdAt: 'created_at',
+   updatedAt: 'updated_at',
+   indexes: [
+     {
+       fields: ['user_id']
+     },
+     {
+       fields: ['created_at']
+     }
+   ]
+ });
+ 
+ module.exports = Conversation;
+ 
+EOF
+)

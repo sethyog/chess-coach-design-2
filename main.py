@@ -30,6 +30,8 @@ except ImportError:
     
     LANGCHAIN_AVAILABLE = False
 
+print("LangChain OpenAI loaded:", LANGCHAIN_AVAILABLE)
+
 app = FastAPI(title="Chess Coach AI API", version="1.0.0")
 
 # Add CORS middleware
@@ -79,7 +81,7 @@ async def chat_message(chat_request: ChatMessage):
             if not openai_api_key:
                 # Fallback to mock response if no API key
                 return ChatResponse(
-                    response=f"Echo (no API key): {message}",
+                    response=f"Echo3 (no API key): {message}",
                     userId=user_id
                 )
             
@@ -87,7 +89,7 @@ async def chat_message(chat_request: ChatMessage):
             llm = OpenAI(
                 api_key=openai_api_key,
                 temperature=0.7,
-                model="gpt-3.5-turbo-instruct"
+                model="gpt-3.5-turbo"
             )
             memory = ConversationBufferMemory()
             sessions[user_id] = ConversationChain(

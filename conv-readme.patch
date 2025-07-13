@@ -1,0 +1,107 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/README.md b/README.md
+index 01f1ae258fa9e1916812e7e1d1b255dbbf95c007..933e48ff781a4d31de65bd26447c7e29bc18bf69 100644
+--- a/README.md
++++ b/README.md
+@@ -16,94 +16,98 @@ Chess Coach is a full-stack application that integrates with Chess.com and Liche
+ - Update your profile and preferences
+ - Analyze new games with simple commands
+ 
+ ### User Authentication
+ - Email/password authentication with Firebase
+ - OAuth integration with Chess.com and Lichess
+ - Secure token storage
+ 
+ ### Interactive Chessboard
+ - Responsive chessboard UI using react-chessboard
+ - Support for FEN/PGN notation
+ - Lesson mode and free-play mode
+ - Move history tracking
+ 
+ ### Game Analysis
+ - Automatic fetching of games from Chess.com and Lichess
+ - Stockfish analysis via python-chess
+ - Move accuracy evaluation
+ - Blunder detection
+ 
+ ### Player Profiling
+ - Skill trend tracking
+ - Style analysis (aggressive, positional, etc.)
+ - Strength and weakness identification
+ - Opening repertoire analysis
++- Conversation metadata on skill level, common mistakes, and progress
+ 
+ ### Personality Modeling
+ - Conversation analysis using GPT-4
+ - Learning style classification
+ - Adaptive teaching approach
+ 
+ ### Personalized Lessons
+ - Weekly lesson generation based on profile
+ - Interactive exercises and puzzles
+ - Progress tracking and resume functionality
+ - Lesson history
+ 
+ ### Adaptive Chatbot
+ - Context-aware responses using LangChain and GPT-4
+ - Style adaption based on user personality
+ - Chess-specific assistance
+ - Chat panel embedded in every lesson for instant questions
++- Conversation history navigation with persistent chat logs
++- Prompts leverage insights and patterns from previous conversations
+ 
+ ## Architecture
+ 
+ The application is built with:
+ 
+ ### Frontend
+ - React for the UI components
+ - react-chessboard for the interactive chess board
+ - React Router for navigation
+ - CSS for styling
+ 
+ ### Backend
+ - Node.js and Express for the API server
+ - Firebase for authentication
+ - PostgreSQL for data storage
+ - Python with FastAPI for chess analysis
+ - Stockfish for move evaluation
+ - LangChain and OpenAI for AI components
+ 
+ ### Data Flow
+ 1. User authenticates via Firebase or chess platform OAuth
+ 2. Games are fetched weekly from Chess.com and Lichess
+ 3. Games are analyzed by Stockfish via python-chess
+ 4. Player profile is generated and updated
+ 5. Personality model is created from chat interactions
+ 6. Lessons are generated based on profile and personality
+ 7. User interacts with lessons, and progress is tracked
++8. Chat conversations store insights and coaching metadata for future reference
+ 
+ ## Getting Started
+ 
+ ### Prerequisites
+ - Node.js (v16+)
+ - Python (v3.8+)
+ - PostgreSQL
+ - Stockfish chess engine
+ 
+ ### Installation
+ 
+ 1. Clone the repository
+ ```
+ git clone https://github.com/yourusername/chess-coach.git
+ cd chess-coach
+ ```
+ 
+ 2. Install dependencies
+ ```
+ npm run install-all
+ ```
+ 
+ 3. Set up environment variables
+ ```
+ cp .env.example .env
+ 
+EOF
+)

@@ -238,6 +238,68 @@ class ConversationService {
       throw new Error(`Failed to search conversations: ${error.message}`);
     }
   }
+
+  // Get conversation metadata (insights and coaching data)
+  async getConversationMetadata(conversationId, userId) {
+    try {
+      const conversation = await Conversation.findOne({
+        where: { id: conversationId, user_id: userId },
+        attributes: ['insights', 'coaching_metadata']
+      });
+      if (!conversation) {
+        throw new Error('Conversation not found');
+      }
+      return conversation;
+    } catch (error) {
+      throw new Error(`Failed to get conversation metadata: ${error.message}`);
+    }
+  }
+
+  // Update coaching metadata
+  async updateCoachingMetadata(conversationId, userId, metadata) {
+    try {
+      const conversation = await Conversation.findOne({
+        where: { id: conversationId, user_id: userId }
+      });
+      if (!conversation) {
+        throw new Error('Conversation not found');
+      }
+      const updated = {
+        ...conversation.coaching_metadata,
+        ...metadata
+      };
+      await Conversation.update(
+        { coaching_metadata: updated },
+        { where: { id: conversationId } }
+      );
+      return updated;
+    } catch (error) {
+      throw new Error(`Failed to update metadata: ${error.message}`);
+    }
+  }
+
+  // Append conversation insights
+  async addInsights(conversationId, userId, insights = []) {
+    try {
+      const conversation = await Conversation.findOne({
+        where: { id: conversationId, user_id: userId }
+      });
+      if (!conversation) {
+        throw new Error('Conversation not found');
+      }
+      const currentInsights = Array.isArray(conversation.insights)
+        ? conversation.insights
+        : [];
+      const updated = Array.from(new Set([...currentInsights, ...insights]));
+      await Conversation.update(
+        { insights: updated },
+        { where: { id: conversationId } }
+      );
+      return updated;
+    } catch (error) {
+      throw new Error(`Failed to add insights: ${error.message}`);
+    }
+  }
 }
 
 module.exports = new ConversationService();

@@ -38,6 +38,7 @@ Chess Coach is a full-stack application that integrates with Chess.com and Liche
 - Style analysis (aggressive, positional, etc.)
 - Strength and weakness identification
 - Opening repertoire analysis
+- Conversation metadata on skill level, common mistakes, and progress
 
 ### Personality Modeling
 - Conversation analysis using GPT-4
@@ -55,6 +56,8 @@ Chess Coach is a full-stack application that integrates with Chess.com and Liche
 - Style adaption based on user personality
 - Chess-specific assistance
 - Chat panel embedded in every lesson for instant questions
+- Conversation history navigation with persistent chat logs
+- Prompts leverage insights and patterns from previous conversations
 
 ## Architecture
 
@@ -82,6 +85,7 @@ The application is built with:
 5. Personality model is created from chat interactions
 6. Lessons are generated based on profile and personality
 7. User interacts with lessons, and progress is tracked
+8. Chat conversations store insights and coaching metadata for future reference
 
 ## Getting Started
 

@@ -1,0 +1,177 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/backend/routes/api/chat.js b/backend/routes/api/chat.js
+index c1f54579b5219af12d4f8985768481c6531f980e..d773db52f6a0ac05c4f922a406ef62aa5e2fe0b5 100644
+--- a/backend/routes/api/chat.js
++++ b/backend/routes/api/chat.js
+@@ -6,64 +6,69 @@ const ConversationService = require('../../services/ConversationService');
+ let OpenAI;
+ let ConversationChain;
+ let BufferMemory;
+ try {
+   ({ OpenAI } = require('langchain/llms/openai'));
+   ({ ConversationChain } = require('langchain/chains'));
+   ({ BufferMemory } = require('langchain/memory'));
+ } catch (err) {
+   // LangChain not installed; create mock classes for development
+   OpenAI = class { async call(input) { return { text: `Echo: ${input}` }; } };
+   ConversationChain = class {
+     constructor(opts) { this.llm = opts.llm; this.memory = opts.memory; }
+     async call({ input }) { return { response: (await this.llm.call(input)).text }; }
+   };
+   BufferMemory = class { constructor() {} };
+ }
+ 
+ // Create LangChain conversation with memory from database
+ async function createConversationChain(conversationId, userId) {
+   const model = new OpenAI({ openAIApiKey: process.env.OPENAI_API_KEY });
+   const memory = new BufferMemory();
+   
+   // Load previous messages from database to restore context
+   try {
+     const messages = await ConversationService.getConversationMessages(conversationId, userId);
++    const meta = await ConversationService.getConversationMetadata(conversationId, userId);
+     
+     // Build conversation history for LangChain memory
+     let conversationHistory = '';
++    let insightsIntro = '';
+     for (const message of messages) {
+       if (message.role === 'user') {
+         conversationHistory += `Human: ${message.content}\n`;
+       } else {
+         conversationHistory += `Assistant: ${message.content}\n`;
+       }
+     }
++    if (meta && Array.isArray(meta.insights) && meta.insights.length > 0) {
++      insightsIntro = `Insights so far: ${meta.insights.join(', ')}\n`;
++    }
+     
+     // Initialize memory with conversation history
+-    if (conversationHistory) {
+-      memory.chatHistory = conversationHistory;
++    if (conversationHistory || insightsIntro) {
++      memory.chatHistory = insightsIntro + conversationHistory;
+     }
+   } catch (error) {
+     console.error('Failed to load conversation history:', error);
+   }
+   
+   return new ConversationChain({ llm: model, memory });
+ }
+ 
+ // POST /api/chat/message
+ router.post('/message', async (req, res) => {
+   const { message, userId, conversationId } = req.body;
+   
+   if (!message) {
+     return res.status(400).json({ error: 'Message is required' });
+   }
+ 
+   if (!userId) {
+     return res.status(400).json({ error: 'User ID is required' });
+   }
+ 
+   try {
+     // Get or create conversation
+     const conversation = await ConversationService.getOrCreateConversation(userId, conversationId);
+     
+     // Save user message to database
+diff --git a/backend/routes/api/chat.js b/backend/routes/api/chat.js
+index c1f54579b5219af12d4f8985768481c6531f980e..d773db52f6a0ac05c4f922a406ef62aa5e2fe0b5 100644
+--- a/backend/routes/api/chat.js
++++ b/backend/routes/api/chat.js
+@@ -109,50 +114,92 @@ router.get('/conversations', async (req, res) => {
+     res.json(conversations);
+   } catch (err) {
+     console.error('Error fetching conversations:', err.message);
+     res.status(500).json({ error: 'Failed to fetch conversations' });
+   }
+ });
+ 
+ // GET /api/chat/conversations/:id - Get specific conversation
+ router.get('/conversations/:id', async (req, res) => {
+   const { id } = req.params;
+   const { userId } = req.query;
+   
+   if (!userId) {
+     return res.status(400).json({ error: 'User ID is required' });
+   }
+ 
+   try {
+     const conversation = await ConversationService.getConversation(id, userId);
+     res.json(conversation);
+   } catch (err) {
+     console.error('Error fetching conversation:', err.message);
+     res.status(404).json({ error: 'Conversation not found' });
+   }
+ });
+ 
++// GET /api/chat/conversations/:id/metadata - Get conversation metadata
++router.get('/conversations/:id/metadata', async (req, res) => {
++  const { id } = req.params;
++  const { userId } = req.query;
++
++  if (!userId) {
++    return res.status(400).json({ error: 'User ID is required' });
++  }
++
++  try {
++    const meta = await ConversationService.getConversationMetadata(id, userId);
++    res.json(meta);
++  } catch (err) {
++    console.error('Error fetching metadata:', err.message);
++    res.status(404).json({ error: 'Conversation not found' });
++  }
++});
++
++// PUT /api/chat/conversations/:id/metadata - Update coaching metadata or insights
++router.put('/conversations/:id/metadata', async (req, res) => {
++  const { id } = req.params;
++  const { userId, coachingMetadata, insights } = req.body;
++
++  if (!userId) {
++    return res.status(400).json({ error: 'User ID is required' });
++  }
++
++  try {
++    let updatedMeta = {};
++    if (coachingMetadata) {
++      updatedMeta.coaching = await ConversationService.updateCoachingMetadata(id, userId, coachingMetadata);
++    }
++    if (insights) {
++      updatedMeta.insights = await ConversationService.addInsights(id, userId, insights);
++    }
++    res.json(updatedMeta);
++  } catch (err) {
++    console.error('Error updating metadata:', err.message);
++    res.status(500).json({ error: 'Failed to update metadata' });
++  }
++});
++
+ // PUT /api/chat/conversations/:id - Update conversation title
+ router.put('/conversations/:id', async (req, res) => {
+   const { id } = req.params;
+   const { userId, title } = req.body;
+   
+   if (!userId) {
+     return res.status(400).json({ error: 'User ID is required' });
+   }
+ 
+   if (!title) {
+     return res.status(400).json({ error: 'Title is required' });
+   }
+ 
+   try {
+     const conversation = await ConversationService.updateConversationTitle(id, userId, title);
+     res.json(conversation);
+   } catch (err) {
+     console.error('Error updating conversation:', err.message);
+     res.status(404).json({ error: 'Conversation not found' });
+   }
+ });
+ 
+ // DELETE /api/chat/conversations/:id - Delete conversation
+ router.delete('/conversations/:id', async (req, res) => {
+   const { id } = req.params;
+ 
+EOF
+)

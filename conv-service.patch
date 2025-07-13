@@ -1,0 +1,99 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/backend/services/ConversationService.js b/backend/services/ConversationService.js
+index c47012ca02b70d0dc370ab342a3f44320410ac2c..9290092ceb1c1d8a130f2ce30adfe11c1d0f3464 100644
+--- a/backend/services/ConversationService.js
++++ b/backend/services/ConversationService.js
+@@ -216,28 +216,90 @@ class ConversationService {
+         where: {
+           user_id: userId,
+           [Op.or]: [
+             { title: { [Op.iLike]: `%${query}%` } }
+           ]
+         },
+         include: [{
+           model: Message,
+           as: 'messages',
+           where: {
+             content: { [Op.iLike]: `%${query}%` }
+           },
+           required: false,
+           limit: 3,
+           order: [['timestamp', 'DESC']]
+         }],
+         order: [['updated_at', 'DESC']],
+         limit
+       });
+       
+       return conversations;
+     } catch (error) {
+       throw new Error(`Failed to search conversations: ${error.message}`);
+     }
+   }
++
++  // Get conversation metadata (insights and coaching data)
++  async getConversationMetadata(conversationId, userId) {
++    try {
++      const conversation = await Conversation.findOne({
++        where: { id: conversationId, user_id: userId },
++        attributes: ['insights', 'coaching_metadata']
++      });
++      if (!conversation) {
++        throw new Error('Conversation not found');
++      }
++      return conversation;
++    } catch (error) {
++      throw new Error(`Failed to get conversation metadata: ${error.message}`);
++    }
++  }
++
++  // Update coaching metadata
++  async updateCoachingMetadata(conversationId, userId, metadata) {
++    try {
++      const conversation = await Conversation.findOne({
++        where: { id: conversationId, user_id: userId }
++      });
++      if (!conversation) {
++        throw new Error('Conversation not found');
++      }
++      const updated = {
++        ...conversation.coaching_metadata,
++        ...metadata
++      };
++      await Conversation.update(
++        { coaching_metadata: updated },
++        { where: { id: conversationId } }
++      );
++      return updated;
++    } catch (error) {
++      throw new Error(`Failed to update metadata: ${error.message}`);
++    }
++  }
++
++  // Append conversation insights
++  async addInsights(conversationId, userId, insights = []) {
++    try {
++      const conversation = await Conversation.findOne({
++        where: { id: conversationId, user_id: userId }
++      });
++      if (!conversation) {
++        throw new Error('Conversation not found');
++      }
++      const currentInsights = Array.isArray(conversation.insights)
++        ? conversation.insights
++        : [];
++      const updated = Array.from(new Set([...currentInsights, ...insights]));
++      await Conversation.update(
++        { insights: updated },
++        { where: { id: conversationId } }
++      );
++      return updated;
++    } catch (error) {
++      throw new Error(`Failed to add insights: ${error.message}`);
++    }
++  }
+ }
+ 
+ module.exports = new ConversationService();
+ 
+EOF
+)

@@ -23,6 +23,16 @@ const Conversation = sequelize.define('Conversation', {
     type: DataTypes.JSON,
     allowNull: true,
     defaultValue: {}
+  },
+  insights: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: []
+  },
+  coaching_metadata: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: {}
   }
 }, {
   tableName: 'conversations',

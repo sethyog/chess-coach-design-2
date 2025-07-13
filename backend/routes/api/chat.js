@@ -7,41 +7,78 @@ let OpenAI;
 let ConversationChain;
 let BufferMemory;
 try {
-  ({ OpenAI } = require('langchain/llms/openai'));
+  ({ OpenAI } = require('@langchain/openai'));
   ({ ConversationChain } = require('langchain/chains'));
   ({ BufferMemory } = require('langchain/memory'));
 } catch (err) {
   // LangChain not installed; create mock classes for development
-  OpenAI = class { async call(input) { return { text: `Echo: ${input}` }; } };
+  console.log('Error: ' + err.message);
+  OpenAI = class { async call(input) { return { text: `Echo4: ${input}` }; } };
   ConversationChain = class {
     constructor(opts) { this.llm = opts.llm; this.memory = opts.memory; }
     async call({ input }) { return { response: (await this.llm.call(input)).text }; }
   };
-  BufferMemory = class { constructor() {} };
+  BufferMemory = class { 
+    constructor() {} 
+    async saveContext(input, output) {
+      // Mock implementation - does nothing in development
+    }
+  };
 }
 
 // Create LangChain conversation with memory from database
 async function createConversationChain(conversationId, userId) {
-  const model = new OpenAI({ openAIApiKey: process.env.OPENAI_API_KEY });
+  const model = new OpenAI({ 
+    openAIApiKey: process.env.OPENAI_API_KEY,
+    maxTokens: 2000, // Allow longer responses
+    temperature: 0.7 // Add some creativity for coaching
+  });
   const memory = new BufferMemory();
+  
+  // Add system prompt to establish chess coach persona
+  const systemPrompt = `You are an adaptive chess coach AI assistant. Your role is to:
+
+1. **Assess the player's skill level** through their questions and game analysis requests
+2. **Provide personalized coaching** tailored to their current abilities and learning style
+3. **Explain chess concepts clearly** using appropriate terminology for their level
+4. **Offer strategic and tactical advice** that helps them improve step by step
+5. **Encourage growth mindset** and positive learning experiences
+6. **Analyze positions and games** when requested, highlighting key insights
+7. **Suggest training exercises** appropriate for their skill level
+8. **Adapt your teaching style** based on their responses and progress
+
+Key principles:
+- Be patient, encouraging, and supportive
+- Break complex concepts into digestible pieces
+- Use analogies and examples when helpful
+- Ask clarifying questions to better understand their needs
+- Celebrate improvements and learning moments
+- Focus on practical, actionable advice
+
+Remember that every chess player is unique, so adapt your coaching approach to what works best for each individual.`;
+
+  await memory.saveContext({ input: systemPrompt }, { output: "I understand. I'm ready to be your adaptive chess coach, tailoring my guidance to your specific needs and skill level. How can I help you improve your chess today?" });
   
   // Load previous messages from database to restore context
   try {
     const messages = await ConversationService.getConversationMessages(conversationId, userId);
+    const meta = await ConversationService.getConversationMetadata(conversationId, userId);
     
-    // Build conversation history for LangChain memory
-    let conversationHistory = '';
-    for (const message of messages) {
-      if (message.role === 'user') {
-        conversationHistory += `Human: ${message.content}\n`;
-      } else {
-        conversationHistory += `Assistant: ${message.content}\n`;
-      }
+    // Add insights as system context if available
+    if (meta && Array.isArray(meta.insights) && meta.insights.length > 0) {
+      const insightsContext = `Previous insights about this player: ${meta.insights.join(', ')}`;
+      await memory.saveContext({ input: insightsContext }, { output: "I'll keep these insights in mind to provide better personalized coaching." });
     }
     
-    // Initialize memory with conversation history
-    if (conversationHistory) {
-      memory.chatHistory = conversationHistory;
+    // Add previous messages to memory in the correct format
+    for (const message of messages) {
+      if (message.role === 'user') {
+        // Find the corresponding assistant response
+        const nextMessage = messages.find(m => m.id > message.id && m.role === 'assistant');
+        if (nextMessage) {
+          await memory.saveContext({ input: message.content }, { output: nextMessage.content });
+        }
+      }
     }
   } catch (error) {
     console.error('Failed to load conversation history:', error);
@@ -128,6 +165,48 @@ router.get('/conversations/:id', async (req, res) => {
   } catch (err) {
     console.error('Error fetching conversation:', err.message);
     res.status(404).json({ error: 'Conversation not found' });
+  }
+});
+
+// GET /api/chat/conversations/:id/metadata - Get conversation metadata
+router.get('/conversations/:id/metadata', async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.query;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'User ID is required' });
+  }
+
+  try {
+    const meta = await ConversationService.getConversationMetadata(id, userId);
+    res.json(meta);
+  } catch (err) {
+    console.error('Error fetching metadata:', err.message);
+    res.status(404).json({ error: 'Conversation not found' });
+  }
+});
+
+// PUT /api/chat/conversations/:id/metadata - Update coaching metadata or insights
+router.put('/conversations/:id/metadata', async (req, res) => {
+  const { id } = req.params;
+  const { userId, coachingMetadata, insights } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'User ID is required' });
+  }
+
+  try {
+    let updatedMeta = {};
+    if (coachingMetadata) {
+      updatedMeta.coaching = await ConversationService.updateCoachingMetadata(id, userId, coachingMetadata);
+    }
+    if (insights) {
+      updatedMeta.insights = await ConversationService.addInsights(id, userId, insights);
+    }
+    res.json(updatedMeta);
+  } catch (err) {
+    console.error('Error updating metadata:', err.message);
+    res.status(500).json({ error: 'Failed to update metadata' });
   }
 });
 

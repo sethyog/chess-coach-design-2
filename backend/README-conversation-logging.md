@@ -11,6 +11,7 @@ This implementation adds persistent conversation logging to the Chess Coach appl
 - **messages** table: Stores individual messages with user/assistant roles
 - Proper foreign key relationships and indexes
 - UUID primary keys for security
+- Conversation insights and coaching metadata stored per conversation
 
 ### 2. API Endpoints
 
@@ -19,6 +20,8 @@ This implementation adds persistent conversation logging to the Chess Coach appl
 - `GET /api/chat/conversations` - Get all user conversations
 - `GET /api/chat/conversations/:id` - Get specific conversation with messages
 - `PUT /api/chat/conversations/:id` - Update conversation title
+- `GET /api/chat/conversations/:id/metadata` - Get conversation insights and coaching metadata
+- `PUT /api/chat/conversations/:id/metadata` - Update insights or coaching metadata
 - `DELETE /api/chat/conversations/:id` - Delete conversation
 - `GET /api/chat/search` - Search conversations by content
 
@@ -33,7 +36,13 @@ Response includes:
 - `conversationId`: Conversation UUID
 - `title`: Auto-generated conversation title
 
-### 3. Database Models
+### 3. Conversation Insights & Metadata
+Conversation records now include an `insights` array and `coaching_metadata` object.
+These fields track key themes from prior chats such as openings discussed or
+repeated mistakes. Metadata can be updated via a dedicated endpoint and is
+loaded with the conversation to improve future prompting.
+
+### 4. Database Models
 
 #### Conversation Model
 ```javascript
@@ -42,6 +51,8 @@ Response includes:
   user_id: String (indexed),
   title: String (auto-generated),
   metadata: JSON,
+  insights: JSON[],
+  coaching_metadata: JSON,
   created_at: Timestamp,
   updated_at: Timestamp
 }
@@ -59,7 +70,7 @@ Response includes:
 }
 ```
 
-### 4. Key Components
+### 5. Key Components
 
 #### Database Configuration
 - `backend/config/database.js` - Sequelize connection setup

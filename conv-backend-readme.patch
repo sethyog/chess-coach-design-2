@@ -1,0 +1,109 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/backend/README-conversation-logging.md b/backend/README-conversation-logging.md
+index 865f517c1eb7ec72466310744a0fc413ffdea102..361f39c74fa247e4f0002446eb85af6cac19ef4f 100644
+--- a/backend/README-conversation-logging.md
++++ b/backend/README-conversation-logging.md
+@@ -1,87 +1,98 @@
+ # PostgreSQL Conversation Logging Implementation
+ 
+ ## Overview
+ 
+ This implementation adds persistent conversation logging to the Chess Coach application using PostgreSQL. All chat conversations are now stored in the database and persist across server restarts.
+ 
+ ## Features Implemented
+ 
+ ### 1. Database Schema
+ - **conversations** table: Stores conversation metadata
+ - **messages** table: Stores individual messages with user/assistant roles
+ - Proper foreign key relationships and indexes
+ - UUID primary keys for security
++- Conversation insights and coaching metadata stored per conversation
+ 
+ ### 2. API Endpoints
+ 
+ #### Chat Endpoints
+ - `POST /api/chat/message` - Send message and get AI response
+ - `GET /api/chat/conversations` - Get all user conversations
+ - `GET /api/chat/conversations/:id` - Get specific conversation with messages
+ - `PUT /api/chat/conversations/:id` - Update conversation title
++- `GET /api/chat/conversations/:id/metadata` - Get conversation insights and coaching metadata
++- `PUT /api/chat/conversations/:id/metadata` - Update insights or coaching metadata
+ - `DELETE /api/chat/conversations/:id` - Delete conversation
+ - `GET /api/chat/search` - Search conversations by content
+ 
+ #### Enhanced Message Endpoint
+ The `/api/chat/message` endpoint now supports:
+ - `userId` (required): User identifier
+ - `conversationId` (optional): Continue existing conversation
+ - `message` (required): User message content
+ 
+ Response includes:
+ - `response`: AI response
+ - `conversationId`: Conversation UUID
+ - `title`: Auto-generated conversation title
+ 
+-### 3. Database Models
++### 3. Conversation Insights & Metadata
++Conversation records now include an `insights` array and `coaching_metadata` object.
++These fields track key themes from prior chats such as openings discussed or
++repeated mistakes. Metadata can be updated via a dedicated endpoint and is
++loaded with the conversation to improve future prompting.
++
++### 4. Database Models
+ 
+ #### Conversation Model
+ ```javascript
+ {
+   id: UUID (primary key),
+   user_id: String (indexed),
+   title: String (auto-generated),
+   metadata: JSON,
++  insights: JSON[],
++  coaching_metadata: JSON,
+   created_at: Timestamp,
+   updated_at: Timestamp
+ }
+ ```
+ 
+ #### Message Model
+ ```javascript
+ {
+   id: UUID (primary key),
+   conversation_id: UUID (foreign key),
+   role: ENUM('user', 'assistant'),
+   content: Text,
+   timestamp: Timestamp,
+   metadata: JSON
+ }
+ ```
+ 
+-### 4. Key Components
++### 5. Key Components
+ 
+ #### Database Configuration
+ - `backend/config/database.js` - Sequelize connection setup
+ - `backend/models/` - Sequelize models for conversations and messages
+ - `backend/scripts/setup-database.js` - Database creation script
+ 
+ #### Services
+ - `backend/services/ConversationService.js` - Complete CRUD operations
+   - Create/read/update/delete conversations
+   - Add messages to conversations
+   - Search functionality
+   - Auto-generate conversation titles
+ 
+ #### Enhanced Chat Route
+ - `backend/routes/api/chat.js` - Updated with database persistence
+   - Maintains LangChain conversation context
+   - Stores all messages in database
+   - Loads conversation history for context
+ 
+ ## Setup Instructions
+ 
+ ### 1. Database Setup
+ ```bash
+ # Create the database
+ node backend/scripts/setup-database.js
+ 
+EOF
+)
