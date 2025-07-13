@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ConversationService = require('../../services/ConversationService');
+const LessonService = require('../../services/LessonService');
 
 // Minimal LangChain setup
 let OpenAI;
@@ -87,6 +88,112 @@ Remember that every chess player is unique, so adapt your coaching approach to w
   return new ConversationChain({ llm: model, memory });
 }
 
+// Create lesson-aware conversation chain with enhanced context
+async function createLessonAwareChain(conversationId, userId, lessonContext) {
+  const model = new OpenAI({ 
+    openAIApiKey: process.env.OPENAI_API_KEY,
+    maxTokens: 2000,
+    temperature: 0.7
+  });
+  const memory = new BufferMemory();
+  
+  // Enhanced system prompt for lesson-driven coaching
+  const lessonPrompt = `You are an adaptive chess coach AI assistant integrated with interactive lessons. Your role is to:
+
+1. **Guide students through structured lessons** while maintaining conversational coaching
+2. **Adapt to lesson context** including current position, objectives, and student progress
+3. **Provide hints and explanations** that align with lesson goals
+4. **Suggest moves or concepts** relevant to the current lesson topic
+5. **Track progress** and provide encouragement based on lesson completion
+
+Current lesson context: ${lessonContext ? JSON.stringify(lessonContext) : 'General coaching session'}
+
+When providing responses:
+- Reference the current board position if available
+- Align guidance with lesson objectives
+- Suggest next steps that advance the lesson
+- Provide explanations appropriate for the lesson difficulty level
+- Use chess notation when discussing moves
+
+You can provide special instructions by using these formats:
+- BOARD_UPDATE: {fen: "position", highlight: ["squares"]} - to update the board display
+- PROGRESS_UPDATE: {completed: boolean, score: number} - to update lesson progress
+- LESSON_ACTION: {action: "next|previous|hint|reset"} - to control lesson flow`;
+
+  await memory.saveContext({ input: lessonPrompt }, { output: "I understand. I'm ready to provide lesson-aware chess coaching, guiding you through structured learning while adapting to your current lesson context and progress." });
+  
+  // Load previous messages from database to restore context
+  try {
+    const messages = await ConversationService.getConversationMessages(conversationId, userId);
+    const meta = await ConversationService.getConversationMetadata(conversationId, userId);
+    
+    // Add insights and lesson context as system context
+    if (meta && Array.isArray(meta.insights) && meta.insights.length > 0) {
+      const insightsContext = `Previous insights about this player: ${meta.insights.join(', ')}`;
+      await memory.saveContext({ input: insightsContext }, { output: "I'll keep these insights in mind for personalized lesson coaching." });
+    }
+    
+    // Add previous messages to memory
+    for (const message of messages) {
+      if (message.role === 'user') {
+        const nextMessage = messages.find(m => m.id > message.id && m.role === 'assistant');
+        if (nextMessage) {
+          await memory.saveContext({ input: message.content }, { output: nextMessage.content });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load lesson conversation history:', error);
+  }
+  
+  return new ConversationChain({ llm: model, memory });
+}
+
+// Parse lesson response for special instructions
+function parseLessonResponse(response, lessonContext) {
+  const parsed = {
+    text: response,
+    boardUpdate: null,
+    progressUpdate: null,
+    lessonAction: null
+  };
+  
+  // Extract board updates
+  const boardMatch = response.match(/BOARD_UPDATE:\s*({[^}]+})/);
+  if (boardMatch) {
+    try {
+      parsed.boardUpdate = JSON.parse(boardMatch[1]);
+      parsed.text = response.replace(boardMatch[0], '').trim();
+    } catch (error) {
+      console.error('Failed to parse board update:', error);
+    }
+  }
+  
+  // Extract progress updates
+  const progressMatch = response.match(/PROGRESS_UPDATE:\s*({[^}]+})/);
+  if (progressMatch) {
+    try {
+      parsed.progressUpdate = JSON.parse(progressMatch[1]);
+      parsed.text = parsed.text.replace(progressMatch[0], '').trim();
+    } catch (error) {
+      console.error('Failed to parse progress update:', error);
+    }
+  }
+  
+  // Extract lesson actions
+  const actionMatch = response.match(/LESSON_ACTION:\s*({[^}]+})/);
+  if (actionMatch) {
+    try {
+      parsed.lessonAction = JSON.parse(actionMatch[1]);
+      parsed.text = parsed.text.replace(actionMatch[0], '').trim();
+    } catch (error) {
+      console.error('Failed to parse lesson action:', error);
+    }
+  }
+  
+  return parsed;
+}
+
 // POST /api/chat/message
 router.post('/message', async (req, res) => {
   const { message, userId, conversationId } = req.body;
@@ -161,6 +268,7 @@ router.get('/conversations/:id', async (req, res) => {
 
   try {
     const conversation = await ConversationService.getConversation(id, userId);
+    console.log
     res.json(conversation);
   } catch (err) {
     console.error('Error fetching conversation:', err.message);
@@ -268,6 +376,53 @@ router.get('/search', async (req, res) => {
   } catch (err) {
     console.error('Error searching conversations:', err.message);
     res.status(500).json({ error: 'Failed to search conversations' });
+  }
+});
+
+// POST /api/chat/lesson-message - Enhanced chat for lesson-driven conversations
+router.post('/lesson-message', async (req, res) => {
+  const { message, userId, conversationId, lessonContext } = req.body;
+  
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
+  if (!userId) {
+    return res.status(400).json({ error: 'User ID is required' });
+  }
+
+  try {
+    // Get or create conversation
+    const conversation = await ConversationService.getOrCreateConversation(userId, conversationId);
+    
+    // Save user message to database
+    await ConversationService.addMessage(conversation.id, 'user', message);
+    
+    // Create lesson-aware chain with enhanced context
+    const chain = await createLessonAwareChain(conversation.id, userId, lessonContext);
+    
+    // Generate AI response with lesson context
+    const result = await chain.call({ input: message });
+    let response = result.response;
+    
+    // Parse response for board updates and lesson actions
+    const parsedResponse = parseLessonResponse(response, lessonContext);
+    
+    // Save assistant response to database
+    await ConversationService.addMessage(conversation.id, 'assistant', response);
+    
+    res.json({ 
+      response: parsedResponse.text,
+      conversationId: conversation.id,
+      title: conversation.title,
+      boardUpdate: parsedResponse.boardUpdate,
+      progressUpdate: parsedResponse.progressUpdate,
+      lessonAction: parsedResponse.lessonAction
+    });
+    
+  } catch (err) {
+    console.error('Lesson chat error:', err.message);
+    res.status(500).json({ error: 'Failed to generate lesson response' });
   }
 });
 

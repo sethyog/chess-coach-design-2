@@ -3,6 +3,8 @@ const Conversation = require('./Conversation');
 const Message = require('./Message');
 const CoachingProfile = require('./CoachingProfile');
 const ConversationInsight = require('./ConversationInsight');
+const Lesson = require('./Lesson');
+const UserProgress = require('./UserProgress');
 
 // Define associations
 Conversation.hasMany(Message, {
@@ -25,6 +27,27 @@ ConversationInsight.belongsTo(Conversation, {
   as: 'conversation'
 });
 
+// Lesson and UserProgress associations
+Lesson.hasMany(UserProgress, {
+  foreignKey: 'lessonId',
+  as: 'userProgress'
+});
+
+UserProgress.belongsTo(Lesson, {
+  foreignKey: 'lessonId',
+  as: 'lesson'
+});
+
+UserProgress.belongsTo(Conversation, {
+  foreignKey: 'conversationId',
+  as: 'conversation'
+});
+
+Conversation.hasOne(UserProgress, {
+  foreignKey: 'conversationId',
+  as: 'lessonProgress'
+});
+
 // Sync database (create tables if they don't exist)
 const syncDatabase = async () => {
   try {
@@ -41,5 +64,7 @@ module.exports = {
   Message,
   CoachingProfile,
   ConversationInsight,
+  Lesson,
+  UserProgress,
   syncDatabase
 };

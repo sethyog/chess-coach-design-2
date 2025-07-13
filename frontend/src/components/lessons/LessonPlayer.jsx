@@ -420,7 +420,29 @@ Next up: Tactical Patterns in the Opening!
         </div>
       </div>
 
-      <ChatbotPanel />
+      <ChatbotPanel 
+        currentPosition={position}
+        lessonContext={{
+          topic: lesson.title,
+          currentStep: currentSection.title,
+          sectionType: currentSection.type,
+          userLevel: 'beginner'
+        }}
+        onBoardUpdate={(update) => {
+          if (update.fen) {
+            const newGame = new Chess(update.fen);
+            setGame(newGame);
+            setPosition(update.fen);
+          }
+        }}
+        onLessonAction={(action) => {
+          if (action.type === 'nextSection') {
+            goToNextSection();
+          } else if (action.type === 'previousSection') {
+            goToPreviousSection();
+          }
+        }}
+      />
 
       <div className="card-footer" style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem' }}>
           <button 

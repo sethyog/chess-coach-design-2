@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const ChatbotPanel = () => {
+const ChatbotPanel = ({ onBoardUpdate, currentPosition, lessonContext, onLessonAction }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [userId, setUserId] = useState('');
@@ -71,24 +71,55 @@ const ChatbotPanel = () => {
     setInput('');
 
     try {
-      const res = await fetch('/api/chat/message', {
+      // Use enhanced lesson endpoint if lesson context is available
+      const endpoint = lessonContext ? '/api/chat/lesson-message' : '/api/chat/message';
+      console.debug('here**************************');
+      const payload = {
+        message: userText,
+        userId: userId,
+        conversationId: conversationId
+      };
+      
+      // Add lesson context for enhanced teaching
+      if (lessonContext) {
+        payload.lessonContext = {
+          ...lessonContext,
+          currentPosition: currentPosition
+        };
+      }
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userText,
-          userId: userId,
-          conversationId: conversationId
-        })
+        body: JSON.stringify(payload)
       });
+      
       const data = await res.json();
+      
+      // Handle conversation setup
       if (data.conversationId && !conversationId) {
         setConversationId(data.conversationId);
         fetchConversations();
       }
+      
+      // Handle AI response
       if (data.response) {
-        console.log('Received response length:', data.response.length);
-        console.log('Full response:', data.response);
         setMessages((prev) => [...prev, { from: 'bot', text: data.response }]);
+        
+        // Handle board updates from lesson-driven chat
+        if (data.boardUpdate && onBoardUpdate) {
+          onBoardUpdate(data.boardUpdate);
+        }
+        
+        // Handle lesson actions (progress updates, navigation)
+        if (data.lessonAction && onLessonAction) {
+          onLessonAction(data.lessonAction);
+        }
+        
+        // Handle progress updates
+        if (data.progressUpdate) {
+          console.log('Lesson progress updated:', data.progressUpdate);
+        }
       } else {
         setMessages((prev) => [
           ...prev,

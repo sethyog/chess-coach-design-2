@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import TopicSelector from '../lessons/TopicSelector';
 
 const Dashboard = () => {
   const [lessons, setLessons] = useState([]);
